@@ -304,6 +304,19 @@
                             </>
                         )}
                     </div>
+                    {instances.length > 0 && (
+                        <div className="section" style={{textAlign:'left'}}>
+                            <h2 style={{fontSize:'1.2rem',marginBottom:'1.5rem',color:'#94a3b8'}}>Vista Previa (Cronológica)</h2>
+                            <div className="table-container">
+                                <table>
+                                    <thead><tr><th>ID</th><th>Código</th><th>Inicio</th><th>Fin</th></tr></thead>
+                                    <tbody>{instances.slice(0, 100).map(inst => (
+                                        <tr key={inst.id}><td>{inst.id}</td><td><span className="badge">{inst.code}</span></td><td>{formatTime(inst.start)}</td><td>{formatTime(inst.end)}</td></tr>
+                                    ))}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
