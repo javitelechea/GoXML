@@ -91,6 +91,12 @@ function App() {
     }
   };
 
+  const deleteCategory = (codeToDelete) => {
+    if (window.confirm(`¿Estás seguro de que querés eliminar TODA la categoría "${codeToDelete}"? Esto borrará todos sus eventos.`)) {
+      setInstances(instances.filter(inst => inst.code !== codeToDelete));
+    }
+  };
+
   const updateTypeCode = (oldCode, newCode) => {
     const updated = instances.map(inst => inst.code === oldCode ? { ...inst, code: newCode } : inst);
     setInstances(updated);
@@ -117,16 +123,17 @@ function App() {
           </div>
           <div className="table-container">
             <table>
-              <thead><tr><th>Tipo Actual</th><th>Nuevo Nombre</th><th>Eventos</th></tr></thead>
-              <tbody>
-                {uniqueTypes.map((code, idx) => (
+                <thead><tr><th>Actual</th><th>Nuevo</th><th>Eventos</th><th style={{textAlign:'center'}}>Acción</th></tr></thead>
+                <tbody>{uniqueTypes.map((code, idx) => (
                   <tr key={idx}>
                     <td>{code}</td>
                     <td><input className="manager-input" defaultValue={code} onBlur={e => updateTypeCode(code, e.target.value)} /></td>
                     <td><span className="badge">{instances.filter(i => i.code === code).length}</span></td>
+                    <td style={{textAlign:'center'}}>
+                      <button className="btn-danger" onClick={() => deleteCategory(code)} title="Eliminar categoría">🗑️</button>
+                    </td>
                   </tr>
-                ))}
-              </tbody>
+                ))}</tbody>
             </table>
           </div>
         </div>
