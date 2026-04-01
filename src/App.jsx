@@ -158,7 +158,7 @@ function App() {
 
   return (
     <div className="container">
-      <header><h1><span>Go</span><span className="gradient-text">XML</span></h1><p>Cargador y Convertidor de Eventos</p></header>
+      <header><h1><span>Go</span><span className="gradient-text">XML</span></h1><p>Convertir y editar cualquier archivo a XML</p></header>
       <div className="section">
         {!instances.length ? (
           <div 
