@@ -119,20 +119,59 @@
             if (!window.initSqlJs) throw new Error("Motor SQLite no cargado. Revisa tu conexión a internet.");
             const SQL = await initSqlJs({ locateFile: file => `https://sql.js.org/dist/${file}` });
             const db = new SQL.Database(new Uint8Array(arrayBuffer));
+            
+            // 1. Get FPS
+            let fps = 25;
+            try {
+                const videoRes = db.exec("SELECT FPS FROM Videos LIMIT 1");
+                if (videoRes.length > 0 && videoRes[0].values && videoRes[0].values[0]) {
+                    fps = parseFloat(videoRes[0].values[0][0]) || 25;
+                } else {
+                    console.warn("No se encontró el FPS en Videos. Usando default de 25.");
+                }
+            } catch (e) {
+                console.warn("Error leyendo tabla Videos. Usando fallback de 25.");
+            }
+
+            // 2. Check Mediciones
             const res = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='Mediciones'");
             if (res.length === 0) throw new Error("No se encontró la tabla 'Mediciones' en el archivo NACMAC.");
+            
             const data = db.exec("SELECT Categoria, TI, TF, Tclick FROM Mediciones");
-            if (data.length === 0) return [];
+            if (data.length === 0 || !data[0].values) return [];
+            
             const columns = data[0].columns;
             const values = data[0].values;
             const idxCat = columns.indexOf('Categoria');
             const idxTI = columns.indexOf('TI');
             const idxTF = columns.indexOf('TF');
             const idxTClick = columns.indexOf('Tclick');
+
             return values.map((row, i) => {
-                const start = parseFloat(row[idxTI] || row[idxTClick] || 0);
-                const end = parseFloat(row[idxTF] || start);
-                return { id: (i+1).toString(), start, end, code: String(row[idxCat] || "Sin Categoría") };
+                const rawTI = row[idxTI];
+                const rawTF = row[idxTF];
+                const rawTClick = row[idxTClick];
+
+                let start = 0;
+                if (rawTI !== null && rawTI !== undefined && rawTI !== "") {
+                    start = parseFloat(rawTI) / fps;
+                } else if (rawTClick !== null && rawTClick !== undefined && rawTClick !== "") {
+                    start = parseFloat(rawTClick) / fps;
+                }
+
+                let end = 0;
+                if (rawTF !== null && rawTF !== undefined && rawTF !== "") {
+                    end = parseFloat(rawTF) / fps;
+                } else {
+                    end = start;
+                }
+
+                return { 
+                    id: (i+1).toString(), 
+                    start, 
+                    end, 
+                    code: String(row[idxCat] || "Sin Categoría") 
+                };
             });
         };
 

@@ -14,13 +14,26 @@ export const parseNacmacFile = async (arrayBuffer) => {
 
         const db = new SQL.Database(new Uint8Array(arrayBuffer));
 
-        // 1. Check if Mediciones table exists
+        // 1. Get FPS from Videos table
+        let fps = 25; // Standard fallback
+        try {
+            const videoRes = db.exec("SELECT FPS FROM Videos LIMIT 1");
+            if (videoRes.length > 0 && videoRes[0].values && videoRes[0].values[0]) {
+                fps = parseFloat(videoRes[0].values[0][0]) || 25;
+            } else {
+                console.warn("No se encontró el FPS en la tabla 'Videos'. Usando fallback de 25.");
+            }
+        } catch (e) {
+            console.warn("Error al leer la tabla 'Videos'. Usando fallback de 25. Detalle: " + e.message);
+        }
+
+        // 2. Check if Mediciones table exists
         const tableCheck = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='Mediciones'");
         if (tableCheck.length === 0) {
             throw new Error("No se encontró la tabla 'Mediciones' en el archivo NACMAC.");
         }
 
-        // 2. Extract events
+        // 3. Extract events
         // Required columns: Categoria (code), TI (start), TF (end), Tclick (fallback)
         const res = db.exec("SELECT Categoria, TI, TF, Tclick FROM Mediciones");
         
@@ -42,11 +55,11 @@ export const parseNacmacFile = async (arrayBuffer) => {
             let end = null;
             const code = row[idxCat] || "Sin Categoría";
 
-            // Rules:
-            // 1. start = TI
-            // 2. if TI missing, use Tclick
-            // 3. end = TF
-            // 4. if TF missing, use TI (or Tclick if TI also missing)
+            // Rules with FPS conversion (frames to seconds):
+            // 1. start = TI / fps
+            // 2. if TI missing, use Tclick / fps
+            // 3. end = TF / fps
+            // 4. if TF missing, use start
 
             const rawTI = row[idxTI];
             const rawTF = row[idxTF];
@@ -54,16 +67,16 @@ export const parseNacmacFile = async (arrayBuffer) => {
 
             // Resolve Start
             if (rawTI !== null && rawTI !== undefined && rawTI !== "") {
-                start = parseFloat(rawTI);
+                start = parseFloat(rawTI) / fps;
             } else if (rawTClick !== null && rawTClick !== undefined && rawTClick !== "") {
-                start = parseFloat(rawTClick);
+                start = parseFloat(rawTClick) / fps;
             } else {
                 start = 0; // Default fallback safety
             }
 
             // Resolve End
             if (rawTF !== null && rawTF !== undefined && rawTF !== "") {
-                end = parseFloat(rawTF);
+                end = parseFloat(rawTF) / fps;
             } else {
                 end = start; // Fallback to start
             }
