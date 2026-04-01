@@ -29,7 +29,7 @@ function App() {
   const [currentStartTime, setCurrentStartTime] = useState(0);
 
   const handleFile = (event) => {
-    const file = event.target.files[0];
+    const file = event.target.files ? event.target.files[0] : (event.dataTransfer ? event.dataTransfer.files[0] : null);
     if (!file) return;
     const isBinary = file.name.toLowerCase().endsWith('.nacmac');
     const reader = new FileReader();
@@ -54,6 +54,12 @@ function App() {
     } else {
       reader.readAsText(file);
     }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleFile(e);
   };
 
   const applyShift = () => {
@@ -155,7 +161,12 @@ function App() {
       <header><h1>GoXML</h1><p>Any to XML converter and editor</p></header>
       <div className="section">
         {!instances.length ? (
-          <div className="dropzone" onClick={() => document.getElementById('f').click()}>
+          <div 
+            className="dropzone" 
+            onClick={() => document.getElementById('f').click()}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDrop={handleDrop}
+          >
             <input id="f" type="file" style={{ display: 'none' }} onChange={handleFile} accept=".SCTimeline,.json,.xml,.lgm,.nacmac" />
             <p>Sube tu archivo .SCTimeline, .lgm o .nacmac</p>
             <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Detección automática de formato (LongoMatch, Sportscode, Nacsport)</span>

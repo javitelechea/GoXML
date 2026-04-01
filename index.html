@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GoXML</title>
+    <!-- Librerías base -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Soporte SQLite para .nacmac -->
+    <script src="https://sql.js.org/dist/sql-wasm.js"></script>
     <style>
         :root {
             font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -41,7 +44,6 @@
         th { background: #1e293b; padding: 1rem; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid rgba(255, 255, 255, 0.1); font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.05em; }
         td { padding: 0.6rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); background: rgba(30, 41, 59, 0.2); font-size: 0.9rem; }
         .manager-input { background: rgba(15, 23, 42, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: white; width: 100%; padding: 0.5rem !important; box-sizing: border-box; border-radius: 0.4rem; }
-        .manager-input:focus { border-color: #60a5fa !important; outline: none; background: rgba(15, 23, 42, 0.8) !important; }
         .badge { background: rgba(96, 165, 250, 0.2); color: #60a5fa; padding: 0.2rem 0.5rem; border-radius: 0.4rem; font-size: 0.8rem; }
     </style>
 </head>
@@ -56,7 +58,6 @@
             const m = Math.floor((seconds % 3600) / 60);
             const s = (seconds % 60).toFixed(2);
             const mm = m.toString().padStart(2, '0');
-            const ss = parseFloat(s).toString().padStart(5, '0'); 
             return h > 0 ? `${h}:${mm}:${s.padStart(5, '0')}` : `${mm}:${s.padStart(5, '0')}`;
         };
 
@@ -69,17 +70,12 @@
         };
 
         const escapeXml = (unsafe) => {
-            return unsafe.toString()
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&apos;');
+            return unsafe.toString().replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":"&apos;"}[c]));
         };
 
         const parseLongoMatchProject = (rawText) => {
             const data = JSON.parse(rawText);
-            if (!data.Timeline) throw new Error("No 'Timeline' section found.");
+            if (!data.Timeline) throw new Error("No se encontró la sección Timeline (.lgm)");
             return data.Timeline.map(event => ({
                 id: event.ID || Math.random().toString(36).substr(2, 9),
                 start: event.Start !== undefined ? parseFloat(event.Start) : (event.EventTime !== undefined ? parseFloat(event.EventTime) : 0),
@@ -119,6 +115,27 @@
             return events;
         };
 
+        const parseNacmacFile = async (arrayBuffer) => {
+            if (!window.initSqlJs) throw new Error("Motor SQLite no cargado. Revisa tu conexión a internet.");
+            const SQL = await initSqlJs({ locateFile: file => `https://sql.js.org/dist/${file}` });
+            const db = new SQL.Database(new Uint8Array(arrayBuffer));
+            const res = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='Mediciones'");
+            if (res.length === 0) throw new Error("No se encontró la tabla 'Mediciones' en el archivo NACMAC.");
+            const data = db.exec("SELECT Categoria, TI, TF, Tclick FROM Mediciones");
+            if (data.length === 0) return [];
+            const columns = data[0].columns;
+            const values = data[0].values;
+            const idxCat = columns.indexOf('Categoria');
+            const idxTI = columns.indexOf('TI');
+            const idxTF = columns.indexOf('TF');
+            const idxTClick = columns.indexOf('Tclick');
+            return values.map((row, i) => {
+                const start = parseFloat(row[idxTI] || row[idxTClick] || 0);
+                const end = parseFloat(row[idxTF] || start);
+                return { id: (i+1).toString(), start, end, code: String(row[idxCat] || "Sin Categoría") };
+            });
+        };
+
         const normalizeEvents = (events) => {
             const sorted = [...events].sort((a, b) => a.start - b.start);
             return sorted.map((event, index) => ({ ...event, id: (index + 1).toString() }));
@@ -143,21 +160,39 @@
             const [targetStartTimeStr, setTargetStartTimeStr] = useState("00:00");
             const [currentStartTime, setCurrentStartTime] = useState(0);
 
-            const handleFile = (file) => {
+            const handleFile = async (event) => {
+                const file = event.target.files ? event.target.files[0] : (event.dataTransfer ? event.dataTransfer.files[0] : null);
+                if (!file) return;
+                const ext = file.name.split('.').pop().toLowerCase();
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = async (e) => {
                     try {
-                        const ext = file.name.split('.').pop().toLowerCase();
-                        let rawEvents = ext === 'lgm' ? parseLongoMatchProject(e.target.result) : parseSportscodeTimeline(e.target.result);
+                        let rawEvents = [];
+                        if (ext === 'nacmac') {
+                            rawEvents = await parseNacmacFile(e.target.result);
+                            setFileType("Nacsport (.nacmac)");
+                        } else if (ext === 'lgm') {
+                            rawEvents = parseLongoMatchProject(e.target.result);
+                            setFileType("LongoMatch (.lgm)");
+                        } else {
+                            rawEvents = parseSportscodeTimeline(e.target.result);
+                            setFileType("Sportscode (.SCTimeline/XML)");
+                        }
                         const norm = normalizeEvents(rawEvents);
                         setInstances(norm);
-                        setFileType(ext === 'lgm' ? "LongoMatch (.lgm)" : "Sportscode (.SCTimeline/XML)");
                         const autoStart = norm.find(i => i.code.toLowerCase().includes('start period'))?.start || (norm.length > 0 ? Math.min(...norm.map(i => i.start)) : 0);
                         setCurrentStartTime(autoStart);
                         setTargetStartTimeStr(formatTime(autoStart));
                     } catch (err) { alert(err.message); }
                 };
-                reader.readAsText(file);
+                if (ext === 'nacmac') reader.readAsArrayBuffer(file);
+                else reader.readAsText(file);
+            };
+
+            const handleDrop = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleFile(e);
             };
 
             const applyShift = () => {
@@ -224,13 +259,17 @@
 
             return (
                 <div className="container">
-                    <header><h1>GoXML</h1><p>Any to XML converter and editor</p></header>
+                    <header><h1>GoXML</h1><p>Cargador y Convertidor de Eventos</p></header>
                     <div className="section">
                         {!instances.length ? (
-                            <div className="dropzone" onClick={() => document.getElementById('f').click()}>
-                                <input id="f" type="file" style={{display:'none'}} onChange={e => handleFile(e.target.files[0])} accept=".SCTimeline,.json,.xml,.lgm" />
-                                <p>Sube tu archivo .SCTimeline o .lgm</p>
-                                <span style={{color: '#64748b', fontSize: '0.9rem'}}>Solo HTML, sin instalación necesaria</span>
+                            <div 
+                                className="dropzone" 
+                                onClick={() => document.getElementById('f').click()}
+                                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                onDrop={handleDrop}
+                            >
+                                <input id="f" type="file" style={{display:'none'}} onChange={handleFile} accept=".SCTimeline,.json,.xml,.lgm,.nacmac" />
+                                <p>Sube tu archivo .SCTimeline, .lgm o .nacmac</p>
                             </div>
                         ) : (
                             <>
