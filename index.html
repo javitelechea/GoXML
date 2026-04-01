@@ -269,8 +269,11 @@
                                 onDrop={handleDrop}
                             >
                                 <input id="f" type="file" style={{display:'none'}} onChange={handleFile} accept=".SCTimeline,.json,.xml,.lgm,.nacmac" />
-                                <p>Sube tu archivo .SCTimeline, .lgm o .nacmac</p>
+                                <p>Arrastra aquí tu archivo</p>
                             </div>
+                            <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#64748b' }}>
+                                Archivos soportados: .xml, .nacmac, .lgm, .SCTimeline
+                            </p>
                         ) : (
                             <>
                                 <div style={{marginBottom: '1rem'}}><span className="badge">Detectado: {fileType}</span></div>
