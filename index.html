@@ -226,6 +226,14 @@
                 setInstances(normalizeEvents(updated));
             };
 
+            const applyShift = () => {
+                const targetSecs = parseTime(targetStartTimeStr);
+                const offset = targetSecs - currentStartTime;
+                const shifted = instances.map(inst => ({ ...inst, start: Math.max(0, inst.start + offset), end: Math.max(0, inst.end + offset) }));
+                setInstances(normalizeEvents(shifted));
+                setCurrentStartTime(targetSecs);
+            };
+
             const uniqueTypes = [...new Set(instances.map(inst => inst.code))].sort();
 
             if (view === 'editor') return (
