@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GoXML</title>
+    <!-- Fuentes premium -->
+    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <!-- Librerías base -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -19,7 +21,9 @@
         }
         body { margin: 0; display: flex; place-items: center; min-width: 320px; min-height: 100vh; justify-content: center; }
         .container { display: flex; flex-direction: column; gap: 2rem; align-items: center; max-width: 1200px; padding: 2rem; text-align: center; width: 100%; }
-        header h1 { font-size: 3.2em; margin-bottom: 0.5rem; background: linear-gradient(to right, #60a5fa, #a855f7); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        header h1 { font-family: 'Aldrich', sans-serif; font-size: 3.5em; margin-bottom: 0.5rem; letter-spacing: -0.02em; text-transform: uppercase; }
+        header h1 span { color: #ffffff; }
+        header h1 .gradient-text { background: linear-gradient(to right, #60a5fa, #a855f7); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
         header p { color: #94a3b8; font-size: 1.1rem; }
         .section { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.5rem; padding: 2rem; width: 100%; box-sizing: border-box; }
         .dropzone { border: 2px dashed rgba(255, 255, 255, 0.2); border-radius: 1rem; padding: 3rem; cursor: pointer; transition: all 0.3s ease; background: rgba(255, 255, 255, 0.03); }
@@ -298,7 +302,7 @@
 
             return (
                 <div className="container">
-                    <header><h1>GoXML</h1><p>Cargador y Convertidor de Eventos</p></header>
+                    <header><h1><span>Go</span><span className="gradient-text">XML</span></h1><p>Cargador y Convertidor de Eventos</p></header>
                     <div className="section">
                         {!instances.length ? (
                             <>

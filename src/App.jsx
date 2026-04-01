@@ -158,7 +158,7 @@ function App() {
 
   return (
     <div className="container">
-      <header><h1>GoXML</h1><p>Any to XML converter and editor</p></header>
+      <header><h1><span>Go</span><span className="gradient-text">XML</span></h1><p>Cargador y Convertidor de Eventos</p></header>
       <div className="section">
         {!instances.length ? (
           <div 
