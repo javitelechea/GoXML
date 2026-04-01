@@ -152,7 +152,7 @@ function App() {
 
   return (
     <div className="container">
-      <header><h1>XML Go</h1><p>Any to XML converter and editor</p></header>
+      <header><h1>GoXML</h1><p>Any to XML converter and editor</p></header>
       <div className="section">
         {!instances.length ? (
           <div className="dropzone" onClick={() => document.getElementById('f').click()}>
