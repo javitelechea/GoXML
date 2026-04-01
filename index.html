@@ -262,18 +262,20 @@
                     <header><h1>GoXML</h1><p>Cargador y Convertidor de Eventos</p></header>
                     <div className="section">
                         {!instances.length ? (
-                            <div 
-                                className="dropzone" 
-                                onClick={() => document.getElementById('f').click()}
-                                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                onDrop={handleDrop}
-                            >
-                                <input id="f" type="file" style={{display:'none'}} onChange={handleFile} accept=".SCTimeline,.json,.xml,.lgm,.nacmac" />
-                                <p>Arrastra aquí tu archivo</p>
-                            </div>
-                            <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#64748b' }}>
-                                Archivos soportados: .xml, .nacmac, .lgm, .SCTimeline
-                            </p>
+                            <>
+                                <div 
+                                    className="dropzone" 
+                                    onClick={() => document.getElementById('f').click()}
+                                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                    onDrop={handleDrop}
+                                >
+                                    <input id="f" type="file" style={{display:'none'}} onChange={handleFile} accept=".SCTimeline,.json,.xml,.lgm,.nacmac" />
+                                    <p>Arrastra aquí tu archivo</p>
+                                </div>
+                                <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#64748b' }}>
+                                    Archivos soportados: .xml, .nacmac, .lgm, .SCTimeline
+                                </p>
+                            </>
                         ) : (
                             <>
                                 <div style={{marginBottom: '1rem'}}><span className="badge">Detectado: {fileType}</span></div>
