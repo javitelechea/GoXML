@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +10,6 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Soporte SQLite para .nacmac -->
     <script src="https://sql.js.org/dist/sql-wasm.js"></script>
     <style>
         :root {
@@ -21,19 +20,16 @@
         }
         body { margin: 0; display: flex; place-items: center; min-width: 320px; min-height: 100vh; justify-content: center; }
         .container { display: flex; flex-direction: column; gap: 2rem; align-items: center; max-width: 1200px; padding: 2rem; text-align: center; width: 100%; }
-        
         header h1 { font-family: 'Aldrich', sans-serif; font-size: 3.5em; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
         header h1 span { color: #ffffff; }
         header h1 .gradient-text { background: linear-gradient(to right, #60a5fa, #a855f7); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
         header p { color: #94a3b8; font-size: 1.1rem; }
-        
         .section { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.5rem; padding: 2rem; width: 100%; box-sizing: border-box; }
         .dropzone { border: 2px dashed rgba(255, 255, 255, 0.2); border-radius: 1rem; padding: 3rem; cursor: pointer; transition: all 0.3s ease; background: rgba(255, 255, 255, 0.03); }
         .dropzone:hover { border-color: #60a5fa; background: rgba(96, 165, 250, 0.05); }
         .controls { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; align-items: center; margin-top: 1.5rem; }
         .input-group { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
         input[type="text"] { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 0.5rem; padding: 0.75rem; color: white; width: 150px; font-size: 1rem; text-align: center; }
-        
         button { border: none; font-weight: 600; padding: 0.8rem 1.8rem; border-radius: 0.8rem; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; }
         .btn-primary { background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5); filter: brightness(1.1); }
@@ -43,13 +39,11 @@
         .btn-admin:hover { background: rgba(168, 85, 247, 0.2); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(168, 85, 247, 0.2); }
         .btn-inspector { background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.3); color: #60a5fa; }
         .btn-inspector:hover { background: rgba(96, 165, 250, 0.2); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(96, 165, 250, 0.2); }
-
-        .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-        .table-container { max-height: 500px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent; }
+        .table-container { max-height: 500px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent; margin-top: 1rem; }
         table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
-        th { background: #1e293b; padding: 1rem; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid rgba(255, 255, 255, 0.1); font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.05em; }
+        th { background: #1e293b; padding: 1rem; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid rgba(255, 255, 255, 0.1); font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; }
         td { padding: 0.6rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); background: rgba(30, 41, 59, 0.2); font-size: 0.9rem; }
-        .manager-input { background: rgba(15, 23, 42, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: white; width: 100%; padding: 0.5rem !important; box-sizing: border-box; border-radius: 0.4rem; }
+        .manager-input { background: rgba(15, 23, 42, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: white; width: 100%; padding: 0.5rem !important; border-radius: 0.4rem; }
         .badge { background: rgba(96, 165, 250, 0.2); color: #60a5fa; padding: 0.2rem 0.5rem; border-radius: 0.4rem; font-size: 0.8rem; }
     </style>
 </head>
@@ -82,11 +76,11 @@
 
         const parseLongoMatchProject = (rawText) => {
             const data = JSON.parse(rawText);
-            if (!data.Timeline) throw new Error("No se encontró la sección Timeline");
+            if (!data.Timeline) throw new Error("No se encontró la sección Timeline.");
             return data.Timeline.map(event => ({
                 id: event.ID || Math.random().toString(36).substr(2, 9),
-                start: event.Start !== undefined ? parseFloat(event.Start) : 0,
-                end: event.Stop !== undefined ? parseFloat(event.Stop) : parseFloat(event.Start || 0),
+                start: parseFloat(event.Start || 0),
+                end: parseFloat(event.Stop || event.Start || 0),
                 code: event.Name || ""
             }));
         };
@@ -126,14 +120,13 @@
             if (!window.initSqlJs) throw new Error("Motor SQLite no cargado.");
             const SQL = await initSqlJs({ locateFile: file => `https://sql.js.org/dist/${file}` });
             const db = new SQL.Database(new Uint8Array(arrayBuffer));
-            
             let fps = 25;
             try {
                 const videoRes = db.exec("SELECT FPS FROM Videos LIMIT 1");
                 if (videoRes.length > 0 && videoRes[0].values[0]) {
                     fps = parseFloat(videoRes[0].values[0][0]) || 25;
                 }
-            } catch (e) { console.warn("FPS fallback"); }
+            } catch (e) { console.warn("Usando fallback de 25 fps"); }
 
             const data = db.exec("SELECT Categoria, TI, TF, Tclick FROM Mediciones");
             if (data.length === 0 || !data[0].values) return [];
@@ -208,11 +201,17 @@
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = 'converted.xml';
-                    document.body.appendChild(a);
                     a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                } catch (e) { alert("Error al descargar: " + e.message); }
+                    setTimeout(() => URL.revokeObjectURL(url), 100);
+                } catch (e) { alert("Error: " + e.message); }
+            };
+
+            const applyShift = () => {
+                const targetSecs = parseTime(targetStartTimeStr);
+                const offset = targetSecs - currentStartTime;
+                const shifted = instances.map(inst => ({ ...inst, start: Math.max(0, inst.start + offset), end: Math.max(0, inst.end + offset) }));
+                setInstances(normalizeEvents(shifted));
+                setCurrentStartTime(targetSecs);
             };
 
             const updateTypeCode = (oldCode, newCode) => {
@@ -226,24 +225,16 @@
                 setInstances(normalizeEvents(updated));
             };
 
-            const applyShift = () => {
-                const targetSecs = parseTime(targetStartTimeStr);
-                const offset = targetSecs - currentStartTime;
-                const shifted = instances.map(inst => ({ ...inst, start: Math.max(0, inst.start + offset), end: Math.max(0, inst.end + offset) }));
-                setInstances(normalizeEvents(shifted));
-                setCurrentStartTime(targetSecs);
-            };
-
             const uniqueTypes = [...new Set(instances.map(inst => inst.code))].sort();
 
             if (view === 'editor') return (
-                <div className="container" style={{maxWidth: '800px'}}>
-                    <header><h1><span>Go</span><span className="gradient-text">XML</span></h1><p>Editor de categorías</p></header>
-                    <div className="section" style={{textAlign: 'left'}}>
-                        <div className="view-header"><button className="btn-nav" onClick={() => setView('main')}>← Volver</button></div>
+                <div className="container" style={{maxWidth:'800px'}}>
+                    <header><h1><span>Go</span><span className="gradient-text">XML</span></h1><p>Gestión de categorías</p></header>
+                    <div className="section" style={{textAlign:'left'}}>
+                        <button className="btn-nav" onClick={() => setView('main')} style={{marginBottom:'1rem'}}>← Volver</button>
                         <div className="table-container">
                             <table>
-                                <thead><tr><th>Nombre Actual</th><th>Nuevo Nombre</th><th>Eventos</th></tr></thead>
+                                <thead><tr><th>Actual</th><th>Nuevo</th><th>Eventos</th></tr></thead>
                                 <tbody>{uniqueTypes.map((code, idx) => (
                                     <tr key={idx}><td>{code}</td><td><input className="manager-input" defaultValue={code} onBlur={e => updateTypeCode(code, e.target.value)} /></td><td><span className="badge">{instances.filter(i => i.code === code).length}</span></td></tr>
                                 ))}</tbody>
@@ -254,15 +245,15 @@
             );
 
             if (view === 'inspector') return (
-                <div className="container" style={{maxWidth: '1200px'}}>
+                <div className="container" style={{maxWidth:'1200px'}}>
                     <header><h1><span>Go</span><span className="gradient-text">XML</span></h1><p>Edición de eventos</p></header>
-                    <div className="section" style={{textAlign: 'left'}}>
-                        <div className="view-header"><button className="btn-nav" onClick={() => setView('main')}>← Volver</button></div>
+                    <div className="section" style={{textAlign:'left'}}>
+                        <button className="btn-nav" onClick={() => setView('main')} style={{marginBottom:'1rem'}}>← Volver</button>
                         <div className="table-container">
                             <table>
                                 <thead><tr><th>ID</th><th>Código</th><th>Inicio</th><th>Fin</th></tr></thead>
                                 <tbody>{instances.map((inst, idx) => (
-                                    <tr key={inst.id}><td style={{color: '#64748b'}}>{inst.id}</td><td><input className="manager-input" value={inst.code} onChange={e => updateInstanceValue(idx, 'code', e.target.value)} /></td><td><input className="manager-input" value={formatTime(inst.start)} onChange={e => updateInstanceValue(idx, 'start', e.target.value)} /></td><td><input className="manager-input" value={formatTime(inst.end)} onChange={e => updateInstanceValue(idx, 'end', e.target.value)} /></td></tr>
+                                    <tr key={inst.id}><td>{inst.id}</td><td><input className="manager-input" value={inst.code} onChange={e => updateInstanceValue(idx, 'code', e.target.value)} /></td><td><input className="manager-input" value={formatTime(inst.start)} onChange={e => updateInstanceValue(idx, 'start', e.target.value)} /></td><td><input className="manager-input" value={formatTime(inst.end)} onChange={e => updateInstanceValue(idx, 'end', e.target.value)} /></td></tr>
                                 ))}</tbody>
                             </table>
                         </div>
@@ -287,14 +278,14 @@
                                 <div style={{marginBottom:'1rem'}}><span className="badge">Detectado: {fileType}</span></div>
                                 <div className="controls">
                                     <div className="input-group">
-                                        <label style={{fontSize:'0.8rem',color:'#94a3b8'}}>Inicio actual:</label>
+                                        <label>Inicio actual:</label>
                                         <input type="text" readOnly value={formatTime(currentStartTime)} style={{opacity:0.7}} />
                                     </div>
                                     <div className="input-group">
-                                        <label style={{fontSize:'0.8rem',color:'#94a3b8'}}>Nuevo tiempo inicio:</label>
+                                        <label>Nuevo inicio:</label>
                                         <input type="text" value={targetStartTimeStr} onChange={e => setTargetStartTimeStr(e.target.value)} />
                                     </div>
-                                    <button onClick={applyShift} className="btn-nav">Aplicar shift</button>
+                                    <button onClick={applyShift} className="btn-nav">Mover</button>
                                 </div>
                                 <div className="controls" style={{marginTop:'2rem',paddingTop:'2rem',borderTop:'1px solid rgba(255,255,255,0.05)'}}>
                                     <button onClick={() => setView('editor')} className="btn-admin">🛠 Editor</button>
@@ -306,7 +297,7 @@
                     </div>
                     {instances.length > 0 && (
                         <div className="section" style={{textAlign:'left'}}>
-                            <h2 style={{fontSize:'1.2rem',marginBottom:'1.5rem',color:'#94a3b8'}}>Vista Previa (Cronológica)</h2>
+                            <h2 style={{fontSize:'1.2rem',marginBottom:'1.5rem',color:'#94a3b8'}}>Vista Previa</h2>
                             <div className="table-container">
                                 <table>
                                     <thead><tr><th>ID</th><th>Código</th><th>Inicio</th><th>Fin</th></tr></thead>
