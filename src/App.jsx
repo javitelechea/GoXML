@@ -169,7 +169,6 @@ function App() {
           >
             <input id="f" type="file" style={{ display: 'none' }} onChange={handleFile} accept=".SCTimeline,.json,.xml,.lgm,.nacmac" />
             <p>Sube tu archivo .SCTimeline, .lgm o .nacmac</p>
-            <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Detección automática de formato (LongoMatch, Sportscode, Nacsport)</span>
           </div>
         ) : (
           <>
