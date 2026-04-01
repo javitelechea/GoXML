@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XML Go</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        :root {
+            font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+            color-scheme: dark;
+            color: rgba(255, 255, 255, 0.87);
+            background-color: #0f172a;
+        }
+        body { margin: 0; display: flex; place-items: center; min-width: 320px; min-height: 100vh; justify-content: center; }
+        .container { display: flex; flex-direction: column; gap: 2rem; align-items: center; max-width: 1200px; padding: 2rem; text-align: center; width: 100%; }
+        header h1 { font-size: 3.2em; margin-bottom: 0.5rem; background: linear-gradient(to right, #60a5fa, #a855f7); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        header p { color: #94a3b8; font-size: 1.1rem; }
+        .section { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.5rem; padding: 2rem; width: 100%; box-sizing: border-box; }
+        .dropzone { border: 2px dashed rgba(255, 255, 255, 0.2); border-radius: 1rem; padding: 3rem; cursor: pointer; transition: all 0.3s ease; background: rgba(255, 255, 255, 0.03); }
+        .dropzone:hover { border-color: #60a5fa; background: rgba(96, 165, 250, 0.05); }
+        .controls { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; align-items: center; margin-top: 1.5rem; }
+        .input-group { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+        input[type="text"] { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 0.5rem; padding: 0.75rem; color: white; width: 150px; font-size: 1rem; text-align: center; }
+        
+        button { border: none; font-weight: 600; padding: 0.8rem 1.8rem; border-radius: 0.8rem; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; }
+        .btn-primary { background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5); filter: brightness(1.1); }
+        .btn-nav { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; }
+        .btn-nav:hover { background: rgba(255, 255, 255, 0.1); border-color: #60a5fa; transform: translateY(-2px); }
+        .btn-admin { background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); color: #a855f7; }
+        .btn-admin:hover { background: rgba(168, 85, 247, 0.2); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(168, 85, 247, 0.2); }
+        .btn-inspector { background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.3); color: #60a5fa; }
+        .btn-inspector:hover { background: rgba(96, 165, 250, 0.2); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(96, 165, 250, 0.2); }
+
+        .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .table-container { max-height: 500px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+        th { background: #1e293b; padding: 1rem; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid rgba(255, 255, 255, 0.1); font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.05em; }
+        td { padding: 0.6rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); background: rgba(30, 41, 59, 0.2); font-size: 0.9rem; }
+        .manager-input { background: rgba(15, 23, 42, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: white; width: 100%; padding: 0.5rem !important; box-sizing: border-box; border-radius: 0.4rem; }
+        .manager-input:focus { border-color: #60a5fa !important; outline: none; background: rgba(15, 23, 42, 0.8) !important; }
+        .badge { background: rgba(96, 165, 250, 0.2); color: #60a5fa; padding: 0.2rem 0.5rem; border-radius: 0.4rem; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const formatTime = (seconds) => {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = (seconds % 60).toFixed(2);
+            const mm = m.toString().padStart(2, '0');
+            const ss = parseFloat(s).toString().padStart(5, '0'); 
+            return h > 0 ? `${h}:${mm}:${s.padStart(5, '0')}` : `${mm}:${s.padStart(5, '0')}`;
+        };
+
+        const parseTime = (timeStr) => {
+            if (typeof timeStr === 'number') return timeStr;
+            const parts = timeStr.trim().split(':').map(p => parseFloat(p) || 0);
+            if (parts.length === 3) return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+            if (parts.length === 2) return (parts[0] * 60) + parts[1];
+            return parts[0] || 0;
+        };
+
+        const escapeXml = (unsafe) => {
+            return unsafe.toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&apos;');
+        };
+
+        const parseLongoMatchProject = (rawText) => {
+            const data = JSON.parse(rawText);
+            if (!data.Timeline) throw new Error("No 'Timeline' section found.");
+            return data.Timeline.map(event => ({
+                id: event.ID || Math.random().toString(36).substr(2, 9),
+                start: event.Start !== undefined ? parseFloat(event.Start) : (event.EventTime !== undefined ? parseFloat(event.EventTime) : 0),
+                end: event.Stop !== undefined ? parseFloat(event.Stop) : (event.Start !== undefined ? parseFloat(event.Start) : (event.EventTime !== undefined ? parseFloat(event.EventTime) : 0)),
+                code: event.Name || ""
+            }));
+        };
+
+        const parseSportscodeTimeline = (rawText) => {
+            if (rawText.trim().startsWith('{')) {
+                const data = JSON.parse(rawText);
+                const events = [];
+                data.timeline.rows.forEach(row => {
+                    const code = row.name || 'Unknown';
+                    if (row.instances) row.instances.forEach(inst => events.push({
+                        id: inst.uniqueId || inst.instanceNum || Math.random(),
+                        start: parseFloat(inst.startTime) || 0,
+                        end: parseFloat(inst.endTime) || 0,
+                        code: code
+                    }));
+                });
+                return events;
+            }
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(rawText, "text/xml");
+            const instances = xmlDoc.getElementsByTagName("instance");
+            const events = [];
+            for (let i = 0; i < instances.length; i++) {
+                const inst = instances[i];
+                events.push({
+                    id: inst.getElementsByTagName("ID")[0]?.textContent || '',
+                    start: parseFloat(inst.getElementsByTagName("start")[0]?.textContent) || 0,
+                    end: parseFloat(inst.getElementsByTagName("end")[0]?.textContent) || 0,
+                    code: inst.getElementsByTagName("code")[0]?.textContent || 'Unknown'
+                });
+            }
+            return events;
+        };
+
+        const normalizeEvents = (events) => {
+            const sorted = [...events].sort((a, b) => a.start - b.start);
+            return sorted.map((event, index) => ({ ...event, id: (index + 1).toString() }));
+        };
+
+        const buildXml = (events) => {
+            const HEADER = '<?xml version="1.0" encoding="utf-8"?>';
+            const instancesXml = events.map(inst => `
+    <instance>
+      <ID>${inst.id}</ID>
+      <start>${inst.start.toFixed(2)}</start>
+      <end>${inst.end.toFixed(2)}</end>
+      <code>${escapeXml(inst.code)}</code>
+    </instance>`).join('');
+            return `${HEADER}\n<file>\n  <ALL_INSTANCES>${instancesXml}\n  </ALL_INSTANCES>\n</file>`;
+        };
+
+        function App() {
+            const [view, setView] = useState('main'); 
+            const [instances, setInstances] = useState([]);
+            const [fileType, setFileType] = useState("");
+            const [targetStartTimeStr, setTargetStartTimeStr] = useState("00:00");
+            const [currentStartTime, setCurrentStartTime] = useState(0);
+
+            const handleFile = (file) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const ext = file.name.split('.').pop().toLowerCase();
+                        let rawEvents = ext === 'lgm' ? parseLongoMatchProject(e.target.result) : parseSportscodeTimeline(e.target.result);
+                        const norm = normalizeEvents(rawEvents);
+                        setInstances(norm);
+                        setFileType(ext === 'lgm' ? "LongoMatch (.lgm)" : "Sportscode (.SCTimeline/XML)");
+                        const autoStart = norm.find(i => i.code.toLowerCase().includes('start period'))?.start || (norm.length > 0 ? Math.min(...norm.map(i => i.start)) : 0);
+                        setCurrentStartTime(autoStart);
+                        setTargetStartTimeStr(formatTime(autoStart));
+                    } catch (err) { alert(err.message); }
+                };
+                reader.readAsText(file);
+            };
+
+            const applyShift = () => {
+                const targetSecs = parseTime(targetStartTimeStr);
+                const offset = targetSecs - currentStartTime;
+                const shifted = instances.map(inst => ({ ...inst, start: Math.max(0, inst.start + offset), end: Math.max(0, inst.end + offset) }));
+                setInstances(normalizeEvents(shifted));
+                setCurrentStartTime(targetSecs);
+            };
+
+            const downloadXml = () => {
+                const xmlContent = buildXml(instances);
+                const blob = new Blob([xmlContent], { type: 'text/xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = 'converted.xml'; a.click();
+            };
+
+            const updateTypeCode = (oldCode, newCode) => {
+                setInstances(instances.map(inst => inst.code === oldCode ? { ...inst, code: newCode } : inst));
+            };
+
+            const updateInstanceValue = (idx, field, value) => {
+                const updated = [...instances];
+                if (field === 'start' || field === 'end') updated[idx][field] = parseTime(value);
+                else updated[idx][field] = value;
+                setInstances(normalizeEvents(updated));
+            };
+
+            const uniqueTypes = [...new Set(instances.map(inst => inst.code))].sort((a,b) => a.localeCompare(b));
+
+            if (view === 'editor') return (
+                <div className="container" style={{maxWidth: '800px'}}>
+                    <header><h1>Editor</h1><p>Gestión masiva de nombres</p></header>
+                    <div className="section" style={{textAlign: 'left'}}>
+                        <div className="view-header"><button className="btn-nav" onClick={() => setView('main')}>← Volver</button></div>
+                        <div className="table-container">
+                            <table>
+                                <thead><tr><th>Nombre Actual</th><th>Nuevo Nombre</th><th>Eventos</th></tr></thead>
+                                <tbody>{uniqueTypes.map((code, idx) => (
+                                    <tr key={idx}><td>{code}</td><td><input className="manager-input" defaultValue={code} onBlur={e => updateTypeCode(code, e.target.value)} /></td><td><span className="badge">{instances.filter(i => i.code === code).length}</span></td></tr>
+                                ))}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if (view === 'inspector') return (
+                <div className="container" style={{maxWidth: '1200px'}}>
+                    <header><h1>Inspector</h1><p>Edición granular (Orden Cronológico)</p></header>
+                    <div className="section" style={{textAlign: 'left'}}>
+                        <div className="view-header"><button className="btn-nav" onClick={() => setView('main')}>← Volver</button></div>
+                        <div className="table-container">
+                            <table>
+                                <thead><tr><th>ID</th><th>Código</th><th>Inicio</th><th>Fin</th></tr></thead>
+                                <tbody>{instances.map((inst, idx) => (
+                                    <tr key={inst.id}><td style={{color: '#64748b'}}>{inst.id}</td><td><input className="manager-input" value={inst.code} onChange={e => updateInstanceValue(idx, 'code', e.target.value)} /></td><td><input className="manager-input" value={formatTime(inst.start)} onChange={e => updateInstanceValue(idx, 'start', e.target.value)} /></td><td><input className="manager-input" value={formatTime(inst.end)} onChange={e => updateInstanceValue(idx, 'end', e.target.value)} /></td></tr>
+                                ))}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="container">
+                    <header><h1>XML Go</h1><p>Any to XML converter and editor</p></header>
+                    <div className="section">
+                        {!instances.length ? (
+                            <div className="dropzone" onClick={() => document.getElementById('f').click()}>
+                                <input id="f" type="file" style={{display:'none'}} onChange={e => handleFile(e.target.files[0])} accept=".SCTimeline,.json,.xml,.lgm" />
+                                <p>Sube tu archivo .SCTimeline o .lgm</p>
+                                <span style={{color: '#64748b', fontSize: '0.9rem'}}>Solo HTML, sin instalación necesaria</span>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{marginBottom: '1rem'}}><span className="badge">Detectado: {fileType}</span></div>
+                                <div className="controls">
+                                    <div className="input-group">
+                                        <label style={{fontSize:'0.8rem',color:'#94a3b8'}}>Inicio detectado:</label>
+                                        <input type="text" readOnly value={formatTime(currentStartTime)} style={{opacity:0.7}} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label style={{fontSize:'0.8rem',color:'#94a3b8'}}>Nuevo inicio:</label>
+                                        <input type="text" value={targetStartTimeStr} onChange={e => setTargetStartTimeStr(e.target.value)} />
+                                    </div>
+                                    <button onClick={applyShift} className="btn-nav">Alinear tiempos</button>
+                                </div>
+                                <div className="controls" style={{marginTop:'2rem',paddingTop:'2rem',borderTop:'1px solid rgba(255,255,255,0.05)'}}>
+                                    <button onClick={() => setView('editor')} className="btn-admin">🛠 Editor</button>
+                                    <button onClick={() => setView('inspector')} className="btn-inspector">🔍 Inspector</button>
+                                    <button onClick={downloadXml} className="btn-primary">💾 Descargar XML</button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                    {instances.length > 0 && (
+                        <div className="section" style={{textAlign:'left'}}>
+                            <h2 style={{fontSize:'1.2rem',marginBottom:'1.5rem',color:'#94a3b8'}}>Vista Previa (Cronológica)</h2>
+                            <div className="table-container">
+                                <table>
+                                    <thead><tr><th>ID</th><th>Código</th><th>Inicio</th><th>Fin</th></tr></thead>
+                                    <tbody>{instances.slice(0, 100).map(inst => (
+                                        <tr key={inst.id}><td>{inst.id}</td><td><span className="badge">{inst.code}</span></td><td>{formatTime(inst.start)}</td><td>{formatTime(inst.end)}</td></tr>
+                                    ))}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
