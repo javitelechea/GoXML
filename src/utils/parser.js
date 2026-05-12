@@ -2,7 +2,8 @@ import { parseNacmacFile } from './nacmacParser';
 
 export const parseLongoMatchProject = (rawText) => {
     try {
-        const data = JSON.parse(rawText);
+        const cleaned = rawText.replace(/^\uFEFF/, '').trim();
+        const data = JSON.parse(cleaned);
         if (!data.Timeline) throw new Error("No se encontró la sección 'Timeline' en el archivo .lgm");
         return extractLongoMatchTimelineEvents(data);
     } catch (err) {
