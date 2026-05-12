@@ -77,14 +77,47 @@
         };
 
         const parseLongoMatchProject = (rawText) => {
-            const data = JSON.parse(rawText);
+            const cleaned = rawText.replace(/^\uFEFF/, '').trim();
+            const data = JSON.parse(cleaned);
             if (!data.Timeline) throw new Error("No se encontró la sección Timeline.");
-            return data.Timeline.map(event => ({
-                id: event.ID || Math.random().toString(36).substr(2, 9),
-                start: parseFloat(event.Start || 0),
-                end: parseFloat(event.Stop || event.Start || 0),
-                code: event.Name || ""
-            }));
+
+            const isNative = !!(data.$type || data.$id || (data.Timeline.length > 0 && data.Timeline[0].$type));
+
+            const refMap = {};
+            if (isNative && data.Dashboard && data.Dashboard.List) {
+                for (const button of data.Dashboard.List) {
+                    if (button.EventType && button.EventType.$id) {
+                        refMap[button.EventType.$id] = button.EventType.Name || "";
+                    }
+                }
+            }
+
+            let events = data.Timeline;
+            if (isNative) {
+                events = events.filter(e => (e.$type || '').includes('TimelineEvent'));
+            }
+
+            const starts = events.map(e => typeof e.Start === 'number' ? e.Start : parseFloat(e.Start)).filter(v => !isNaN(v) && v > 0);
+            const divisor = starts.length > 0 && Math.max(...starts) > 86400 ? 1000 : 1;
+
+            return events.map(event => {
+                let code = "";
+                if (isNative && event.EventType && event.EventType.$ref) {
+                    code = refMap[event.EventType.$ref] || "";
+                }
+                if (!code) {
+                    const rawName = event.Name || "";
+                    code = isNative ? rawName.replace(/\s+\d{3,}$/, '') : rawName;
+                }
+                const rawStart = event.Start !== undefined ? parseFloat(event.Start) : (event.EventTime !== undefined ? parseFloat(event.EventTime) : 0);
+                const rawEnd = event.Stop !== undefined ? parseFloat(event.Stop) : rawStart;
+                return {
+                    id: event.ID || Math.random().toString(36).substr(2, 9),
+                    start: rawStart / divisor,
+                    end: rawEnd / divisor,
+                    code
+                };
+            });
         };
 
         const parseSportscodeTimeline = (rawText) => {
