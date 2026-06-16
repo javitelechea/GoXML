@@ -3,6 +3,10 @@ import './styles.css';
 import { parseInputFile } from './utils/parser';
 import { buildXml } from './utils/xmlBuilder';
 import { normalizeEvents } from './utils/normalization';
+import { decodeFileText } from './utils/encoding';
+import { detectTimelineStart } from './utils/timeline';
+
+const INSPECTOR_PAGE_SIZE = 100;
 
 const formatTime = (seconds) => {
   const h = Math.floor(seconds / 3600);
@@ -27,33 +31,32 @@ function App() {
   const [fileType, setFileType] = useState("");
   const [targetStartTimeStr, setTargetStartTimeStr] = useState("00:00");
   const [currentStartTime, setCurrentStartTime] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [inspectorPage, setInspectorPage] = useState(0);
 
   const handleFile = (event) => {
     const file = event.target.files ? event.target.files[0] : (event.dataTransfer ? event.dataTransfer.files[0] : null);
     if (!file) return;
-    const isBinary = file.name.toLowerCase().endsWith('.nacmac');
+    const isNacmac = file.name.toLowerCase().endsWith('.nacmac');
+    setLoading(true);
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        const { events, type } = await parseInputFile(e.target.result, file.name);
+        const raw = isNacmac ? e.target.result : decodeFileText(e.target.result);
+        const { events, type } = await parseInputFile(raw, file.name);
         const normalized = normalizeEvents(events);
         setInstances(normalized);
         setFileType(type);
+        setInspectorPage(0);
 
-        const autoStart = normalized.find(i =>
-          i.code.toLowerCase().includes('start period')
-        )?.start || (normalized.length > 0 ? Math.min(...normalized.map(i => i.start)) : 0);
-
+        const autoStart = detectTimelineStart(normalized);
         setCurrentStartTime(autoStart);
         setTargetStartTimeStr(formatTime(autoStart));
       } catch (err) { alert(err.message); }
+      finally { setLoading(false); }
     };
     
-    if (isBinary) {
-      reader.readAsArrayBuffer(file);
-    } else {
-      reader.readAsText(file);
-    }
+    reader.readAsArrayBuffer(file);
   };
 
   const handleDrop = (e) => {
@@ -102,10 +105,14 @@ function App() {
     setInstances(updated);
   };
 
-  const updateInstanceValue = (idx, field, value) => {
-    const updated = [...instances];
-    if (field === 'start' || field === 'end') updated[idx][field] = parseTime(value);
-    else updated[idx][field] = value;
+  const updateInstanceValue = (id, field, value) => {
+    const updated = instances.map((inst) => {
+      if (inst.id !== id) return inst;
+      const next = { ...inst };
+      if (field === 'start' || field === 'end') next[field] = parseTime(value);
+      else next[field] = value;
+      return next;
+    });
     setInstances(normalizeEvents(updated));
   };
 
@@ -142,24 +149,34 @@ function App() {
   }
 
   if (view === 'inspector') {
+    const totalPages = Math.max(1, Math.ceil(sortedInstances.length / INSPECTOR_PAGE_SIZE));
+    const pageStart = inspectorPage * INSPECTOR_PAGE_SIZE;
+    const pageItems = sortedInstances.slice(pageStart, pageStart + INSPECTOR_PAGE_SIZE);
+
     return (
       <div className="container" style={{ maxWidth: '1200px' }}>
         <header><h1>Inspector</h1><p>Edición granular (Orden Cronológico)</p></header>
         <div className="section" style={{ textAlign: 'left' }}>
           <div className="view-header">
             <button className="btn-nav" onClick={() => setView('main')}>← Volver</button>
-            <span>{instances.length} Instancias totales</span>
+            <span>{instances.length} instancias · página {inspectorPage + 1} de {totalPages}</span>
           </div>
+          {totalPages > 1 && (
+            <div className="controls" style={{ marginBottom: '1rem' }}>
+              <button className="btn-nav" disabled={inspectorPage === 0} onClick={() => setInspectorPage(p => p - 1)}>← Anterior</button>
+              <button className="btn-nav" disabled={inspectorPage >= totalPages - 1} onClick={() => setInspectorPage(p => p + 1)}>Siguiente →</button>
+            </div>
+          )}
           <div className="table-container">
             <table>
               <thead><tr><th>ID</th><th>Código</th><th>Inicio</th><th>Fin</th></tr></thead>
               <tbody>
-                {sortedInstances.map((inst, idx) => (
+                {pageItems.map((inst) => (
                   <tr key={inst.id}>
                     <td style={{ color: '#64748b' }}>{inst.id}</td>
-                    <td><input className="manager-input" value={inst.code} onChange={e => updateInstanceValue(idx, 'code', e.target.value)} /></td>
-                    <td><input className="manager-input" value={formatTime(inst.start)} onChange={e => updateInstanceValue(idx, 'start', e.target.value)} /></td>
-                    <td><input className="manager-input" value={formatTime(inst.end)} onChange={e => updateInstanceValue(idx, 'end', e.target.value)} /></td>
+                    <td><input className="manager-input" value={inst.code} onChange={e => updateInstanceValue(inst.id, 'code', e.target.value)} /></td>
+                    <td><input className="manager-input" value={formatTime(inst.start)} onChange={e => updateInstanceValue(inst.id, 'start', e.target.value)} /></td>
+                    <td><input className="manager-input" value={formatTime(inst.end)} onChange={e => updateInstanceValue(inst.id, 'end', e.target.value)} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -177,12 +194,13 @@ function App() {
         {!instances.length ? (
           <div 
             className="dropzone" 
-            onClick={() => document.getElementById('f').click()}
+            onClick={() => !loading && document.getElementById('f').click()}
             onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onDrop={handleDrop}
+            onDrop={loading ? undefined : handleDrop}
+            style={loading ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
           >
-            <input id="f" type="file" style={{ display: 'none' }} onChange={handleFile} accept=".SCTimeline,.json,.xml,.lgm,.nacmac" />
-            <p>Sube tu archivo .SCTimeline, .lgm o .nacmac</p>
+            <input id="f" type="file" style={{ display: 'none' }} onChange={handleFile} accept=".SCTimeline,.json,.xml,.lgm,.nacmac" disabled={loading} />
+            <p>{loading ? 'Procesando archivo…' : 'Sube tu archivo .xml, .SCTimeline, .lgm o .nacmac'}</p>
           </div>
         ) : (
           <>

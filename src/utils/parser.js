@@ -103,15 +103,21 @@ export const parseSportscodeTimeline = (rawText) => {
         if (rawText.trim().startsWith('<')) {
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(rawText, "text/xml");
+            if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+                throw new Error("XML mal formado o codificación incorrecta (¿UTF-16 sin convertir?).");
+            }
             const instances = xmlDoc.getElementsByTagName("instance");
             const events = [];
             for (let i = 0; i < instances.length; i++) {
                 const inst = instances[i];
+                const labelText = inst.getElementsByTagName("label")[0]
+                    ?.getElementsByTagName("text")[0]?.textContent?.trim();
+                const codeText = inst.getElementsByTagName("code")[0]?.textContent?.trim();
                 events.push({
                     id: inst.getElementsByTagName("ID")[0]?.textContent || '',
                     start: parseFloat(inst.getElementsByTagName("start")[0]?.textContent) || 0,
                     end: parseFloat(inst.getElementsByTagName("end")[0]?.textContent) || 0,
-                    code: inst.getElementsByTagName("code")[0]?.textContent || 'Unknown'
+                    code: codeText || labelText || 'Unknown'
                 });
             }
             return events;
