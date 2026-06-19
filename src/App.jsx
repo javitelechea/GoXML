@@ -5,6 +5,7 @@ import { buildXml } from './utils/xmlBuilder';
 import { normalizeEvents } from './utils/normalization';
 import { decodeFileText } from './utils/encoding';
 import { detectTimelineStart } from './utils/timeline';
+import { autoFixFpsSync } from './utils/fpsSync';
 
 const INSPECTOR_PAGE_SIZE = 100;
 
@@ -33,6 +34,7 @@ function App() {
   const [currentStartTime, setCurrentStartTime] = useState(0);
   const [loading, setLoading] = useState(false);
   const [inspectorPage, setInspectorPage] = useState(0);
+  const [syncFixNote, setSyncFixNote] = useState('');
 
   const handleFile = (event) => {
     const file = event.target.files ? event.target.files[0] : (event.dataTransfer ? event.dataTransfer.files[0] : null);
@@ -44,10 +46,16 @@ function App() {
       try {
         const raw = isNacmac ? e.target.result : decodeFileText(e.target.result);
         const { events, type } = await parseInputFile(raw, file.name);
-        const normalized = normalizeEvents(events);
+        const { events: synced, applied, detection } = autoFixFpsSync(events);
+        const normalized = normalizeEvents(synced);
         setInstances(normalized);
         setFileType(type);
         setInspectorPage(0);
+        setSyncFixNote(
+          applied
+            ? `Sync auto: ${detection.reason} → convertido 25→30 fps (${(detection.scale * 100).toFixed(1)}%)`
+            : ''
+        );
 
         const autoStart = detectTimelineStart(normalized);
         setCurrentStartTime(autoStart);
@@ -204,7 +212,10 @@ function App() {
           </div>
         ) : (
           <>
-            <div style={{ marginBottom: '1rem' }}><span className="badge">Detectado: {fileType}</span></div>
+            <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span className="badge">Detectado: {fileType}</span>
+              {syncFixNote && <span className="badge" style={{ background: 'rgba(34,197,94,0.15)', color: '#86efac' }}>{syncFixNote}</span>}
+            </div>
             <div className="controls">
               <div className="input-group">
                 <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Inicio detectado:</label>
