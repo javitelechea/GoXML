@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoXML</title>
+  <script type="module" crossorigin src="./assets/index-DyBjogOI.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DdSncPFg.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+      window.addEventListener('error', (event) => {
+        const msg = String(event.message || '');
+        const file = String(event.filename || '');
+        if (!msg.includes('MIME') && !file.includes('.jsx')) return;
+        const root = document.getElementById('root');
+        if (!root || root.childElementCount) return;
+        root.innerHTML =
+          '<div style="font-family:system-ui,sans-serif;max-width:32rem;margin:3rem auto;padding:0 1rem;line-height:1.5">' +
+          '<h1 style="font-size:1.25rem">No se puede abrir index.html directamente</h1>' +
+          '<p>Esta app usa Vite. En la terminal del proyecto ejecutá:</p>' +
+          '<pre style="background:#f4f4f5;padding:0.75rem;border-radius:0.5rem">npm install\nnpm run dev</pre>' +
+          '<p>Luego abrí <a href="http://localhost:5173">http://localhost:5173</a>.</p>' +
+          '<p style="color:#71717a;font-size:0.875rem">No uses Live Server ni abras el HTML a mano: el navegador no entiende JSX sin compilar.</p>' +
+          '</div>';
+      }, true);
+    </script>
+</body>
+</html>
