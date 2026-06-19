@@ -40,6 +40,12 @@ jobs:
         run: npm install
       - name: Build
         run: npm run build
+      - name: Verify Pages artifact
+        run: |
+          test -f dist/index.html
+          test -f dist/404.html
+          ! grep -q 'src/main.jsx' dist/index.html
+          echo "Build OK para GitHub Pages y dominio propio"
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
