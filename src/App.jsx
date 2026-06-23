@@ -5,7 +5,7 @@ import { buildXml } from './utils/xmlBuilder';
 import { normalizeEvents } from './utils/normalization';
 import { decodeFileText } from './utils/encoding';
 import { detectTimelineStart } from './utils/timeline';
-import { autoFixFpsSync } from './utils/fpsSync';
+import { applyFpsConversion, canConvertTagandviewFps } from './utils/fpsSync';
 
 const INSPECTOR_PAGE_SIZE = 100;
 
@@ -34,7 +34,7 @@ function App() {
   const [currentStartTime, setCurrentStartTime] = useState(0);
   const [loading, setLoading] = useState(false);
   const [inspectorPage, setInspectorPage] = useState(0);
-  const [syncFixNote, setSyncFixNote] = useState('');
+  const [fpsConverted, setFpsConverted] = useState(false);
 
   const handleFile = (event) => {
     const file = event.target.files ? event.target.files[0] : (event.dataTransfer ? event.dataTransfer.files[0] : null);
@@ -46,16 +46,11 @@ function App() {
       try {
         const raw = isNacmac ? e.target.result : decodeFileText(e.target.result);
         const { events, type } = await parseInputFile(raw, file.name);
-        const { events: synced, applied, detection } = autoFixFpsSync(events);
-        const normalized = normalizeEvents(synced);
+        const normalized = normalizeEvents(events);
         setInstances(normalized);
         setFileType(type);
         setInspectorPage(0);
-        setSyncFixNote(
-          applied
-            ? `Sync auto: ${detection.reason} → convertido 25→30 fps (${(detection.scale * 100).toFixed(1)}%)`
-            : ''
-        );
+        setFpsConverted(false);
 
         const autoStart = detectTimelineStart(normalized);
         setCurrentStartTime(autoStart);
@@ -71,6 +66,13 @@ function App() {
     e.preventDefault();
     e.stopPropagation();
     handleFile(e);
+  };
+
+  const applyTagandviewFps = () => {
+    if (!canConvertTagandviewFps(instances)) return;
+    if (!window.confirm('¿Convertir este XML Tagandview de 25 fps a 30 fps? Solo usalo si el video no sincroniza.')) return;
+    setInstances(normalizeEvents(applyFpsConversion(instances)));
+    setFpsConverted(true);
   };
 
   const applyShift = () => {
@@ -126,6 +128,7 @@ function App() {
 
   const uniqueTypes = [...new Set(instances.map(inst => inst.code))].sort((a, b) => a.localeCompare(b));
   const sortedInstances = [...instances].sort((a, b) => a.start - b.start);
+  const showTagandviewFps = canConvertTagandviewFps(instances) && !fpsConverted;
 
   if (view === 'editor') {
     return (
@@ -214,7 +217,7 @@ function App() {
           <>
             <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <span className="badge">Detectado: {fileType}</span>
-              {syncFixNote && <span className="badge" style={{ background: 'rgba(34,197,94,0.15)', color: '#86efac' }}>{syncFixNote}</span>}
+              {fpsConverted && <span className="badge" style={{ background: 'rgba(34,197,94,0.15)', color: '#86efac' }}>Convertido Tagandview 25→30 fps</span>}
             </div>
             <div className="controls">
               <div className="input-group">
@@ -226,6 +229,9 @@ function App() {
                 <input type="text" value={targetStartTimeStr} onChange={e => setTargetStartTimeStr(e.target.value)} />
               </div>
               <button onClick={applyShift} className="btn-nav">Alinear tiempos</button>
+              {showTagandviewFps && (
+                <button onClick={applyTagandviewFps} className="btn-nav">Convertir Tagandview 25→30 fps</button>
+              )}
             </div>
             <div className="controls" style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
               <button onClick={() => setView('editor')} className="btn-admin">🛠 Editor</button>
