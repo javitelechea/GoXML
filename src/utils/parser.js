@@ -1,4 +1,5 @@
 import { parseNacmacFile } from './nacmacParser';
+import { parseNacFile } from './nacParser';
 
 export const parseLongoMatchProject = (rawText) => {
     try {
@@ -136,6 +137,9 @@ export const parseInputFile = async (data, fileName) => {
     if (ext === 'nacmac') {
         events = await parseNacmacFile(data);
         type = "Nacsport (.nacmac)";
+    } else if (ext === 'nac') {
+        events = await parseNacFile(data);
+        type = "Nacsport (.nac)";
     } else if (ext === 'lgm') {
         events = parseLongoMatchProject(data);
         type = "LongoMatch (.lgm)";

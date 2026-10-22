@@ -39,7 +39,7 @@ function App() {
   const handleFile = (event) => {
     const file = event.target.files ? event.target.files[0] : (event.dataTransfer ? event.dataTransfer.files[0] : null);
     if (!file) return;
-    const isNacmac = file.name.toLowerCase().endsWith('.nacmac');
+    const isNacmac = /\.(nacmac|nac)$/i.test(file.name);
     setLoading(true);
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -210,8 +210,8 @@ function App() {
             onDrop={loading ? undefined : handleDrop}
             style={loading ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
           >
-            <input id="f" type="file" style={{ display: 'none' }} onChange={handleFile} accept=".SCTimeline,.json,.xml,.lgm,.nacmac" disabled={loading} />
-            <p>{loading ? 'Procesando archivo…' : 'Sube tu archivo .xml, .SCTimeline, .lgm o .nacmac'}</p>
+            <input id="f" type="file" style={{ display: 'none' }} onChange={handleFile} accept=".SCTimeline,.json,.xml,.lgm,.nacmac,.nac" disabled={loading} />
+            <p>{loading ? 'Procesando archivo…' : 'Sube tu archivo .xml, .SCTimeline, .lgm, .nacmac o .nac'}</p>
           </div>
         ) : (
           <>
