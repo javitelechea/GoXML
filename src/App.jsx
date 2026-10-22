@@ -5,6 +5,7 @@ import { buildXml } from './utils/xmlBuilder';
 import { normalizeEvents } from './utils/normalization';
 import { decodeFileText } from './utils/encoding';
 import { detectTimelineStart } from './utils/timeline';
+import BatchEditor from './components/BatchEditor';
 import { applyFpsConversion, canConvertTagandviewFps } from './utils/fpsSync';
 
 const INSPECTOR_PAGE_SIZE = 100;
@@ -36,31 +37,49 @@ function App() {
   const [inspectorPage, setInspectorPage] = useState(0);
   const [fpsConverted, setFpsConverted] = useState(false);
   const [editorOrder, setEditorOrder] = useState([]);
+  const [batchFiles, setBatchFiles] = useState([]);
 
-  const handleFile = (event) => {
-    const file = event.target.files ? event.target.files[0] : (event.dataTransfer ? event.dataTransfer.files[0] : null);
-    if (!file) return;
-    const isNacmac = /\.(nacmac|nac)$/i.test(file.name);
-    setLoading(true);
+  const readFileEvents = (file) => new Promise((resolve, reject) => {
+    const isBinary = /\.(nacmac|nac)$/i.test(file.name);
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        const raw = isNacmac ? e.target.result : decodeFileText(e.target.result);
+        const raw = isBinary ? e.target.result : decodeFileText(e.target.result);
         const { events, type } = await parseInputFile(raw, file.name);
-        const normalized = normalizeEvents(events);
-        setInstances(normalized);
-        setFileType(type);
-        setInspectorPage(0);
-        setFpsConverted(false);
-
-        const autoStart = detectTimelineStart(normalized);
-        setCurrentStartTime(autoStart);
-        setTargetStartTimeStr(formatTime(autoStart));
-      } catch (err) { alert(err.message); }
-      finally { setLoading(false); }
+        resolve({ events: normalizeEvents(events), type });
+      } catch (err) { reject(err); }
     };
-    
+    reader.onerror = () => reject(new Error('No se pudo leer ' + file.name));
     reader.readAsArrayBuffer(file);
+  });
+
+  const handleFile = async (event) => {
+    const list = event.target.files ? event.target.files : (event.dataTransfer ? event.dataTransfer.files : []);
+    const picked = Array.from(list || []);
+    if (!picked.length) return;
+    setLoading(true);
+    try {
+      if (picked.length > 1) {
+        const parsed = [];
+        for (const file of picked) {
+          const { events } = await readFileEvents(file);
+          parsed.push({ name: file.name, events });
+        }
+        setBatchFiles(parsed);
+        setView('batch');
+        return;
+      }
+      const { events: normalized, type } = await readFileEvents(picked[0]);
+      setInstances(normalized);
+      setFileType(type);
+      setInspectorPage(0);
+      setFpsConverted(false);
+
+      const autoStart = detectTimelineStart(normalized);
+      setCurrentStartTime(autoStart);
+      setTargetStartTimeStr(formatTime(autoStart));
+    } catch (err) { alert(err.message); }
+    finally { setLoading(false); }
   };
 
   const handleDrop = (e) => {
@@ -133,6 +152,10 @@ function App() {
   const editorTypes = [...new Set([...editorOrder, ...uniqueTypes])].filter(c => uniqueTypes.includes(c));
   const sortedInstances = [...instances].sort((a, b) => a.start - b.start);
   const showTagandviewFps = canConvertTagandviewFps(instances) && !fpsConverted;
+
+  if (view === 'batch') {
+    return <BatchEditor files={batchFiles} onBack={() => { setView('main'); setBatchFiles([]); }} />;
+  }
 
   if (view === 'editor') {
     return (
@@ -214,8 +237,8 @@ function App() {
             onDrop={loading ? undefined : handleDrop}
             style={loading ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
           >
-            <input id="f" type="file" style={{ display: 'none' }} onChange={handleFile} accept=".SCTimeline,.json,.xml,.lgm,.nacmac,.nac" disabled={loading} />
-            <p>{loading ? 'Procesando archivo…' : 'Sube tu archivo .xml, .SCTimeline, .lgm, .nacmac o .nac'}</p>
+            <input id="f" type="file" style={{ display: 'none' }} onChange={handleFile} multiple accept=".SCTimeline,.json,.xml,.lgm,.nacmac,.nac" disabled={loading} />
+            <p>{loading ? 'Procesando archivo…' : 'Sube tu archivo .xml, .SCTimeline, .lgm, .nacmac o .nac (varios a la vez para editarlos en lote)'}</p>
           </div>
         ) : (
           <>
