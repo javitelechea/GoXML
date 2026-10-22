@@ -35,6 +35,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [inspectorPage, setInspectorPage] = useState(0);
   const [fpsConverted, setFpsConverted] = useState(false);
+  const [editorOrder, setEditorOrder] = useState([]);
 
   const handleFile = (event) => {
     const file = event.target.files ? event.target.files[0] : (event.dataTransfer ? event.dataTransfer.files[0] : null);
@@ -111,6 +112,7 @@ function App() {
   };
 
   const updateTypeCode = (oldCode, newCode) => {
+    setEditorOrder(order => order.map(c => c === oldCode ? newCode : c));
     const updated = instances.map(inst => inst.code === oldCode ? { ...inst, code: newCode } : inst);
     setInstances(updated);
   };
@@ -127,6 +129,8 @@ function App() {
   };
 
   const uniqueTypes = [...new Set(instances.map(inst => inst.code))].sort((a, b) => a.localeCompare(b));
+  // El editor conserva el orden con el que se abrió, así las filas no saltan al renombrar
+  const editorTypes = [...new Set([...editorOrder, ...uniqueTypes])].filter(c => uniqueTypes.includes(c));
   const sortedInstances = [...instances].sort((a, b) => a.start - b.start);
   const showTagandviewFps = canConvertTagandviewFps(instances) && !fpsConverted;
 
@@ -137,13 +141,13 @@ function App() {
         <div className="section" style={{ textAlign: 'left' }}>
           <div className="view-header">
             <button className="btn-nav" onClick={() => setView('main')}>← Volver</button>
-            <span>{uniqueTypes.length} Categorías únicas</span>
+            <span>{editorTypes.length} Categorías únicas</span>
           </div>
           <div className="table-container">
             <table>
                 <thead><tr><th>Actual</th><th>Nuevo</th><th>Eventos</th><th style={{textAlign:'center'}}>Acción</th></tr></thead>
-                <tbody>{uniqueTypes.map((code, idx) => (
-                  <tr key={idx}>
+                <tbody>{editorTypes.map((code) => (
+                  <tr key={code}>
                     <td>{code}</td>
                     <td><input className="manager-input" defaultValue={code} onBlur={e => updateTypeCode(code, e.target.value)} /></td>
                     <td><span className="badge">{instances.filter(i => i.code === code).length}</span></td>
@@ -234,7 +238,7 @@ function App() {
               )}
             </div>
             <div className="controls" style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <button onClick={() => setView('editor')} className="btn-admin">🛠 Editor</button>
+              <button onClick={() => { setEditorOrder(uniqueTypes); setView('editor'); }} className="btn-admin">🛠 Editor</button>
               <button onClick={() => setView('inspector')} className="btn-inspector">🔍 Inspector</button>
               <button onClick={downloadXml} className="btn-primary">💾 Descargar XML</button>
             </div>
